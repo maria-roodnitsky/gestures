@@ -35,12 +35,21 @@ struct EmojiArtDocumentView: View {
                         ProgressView().scaleEffect(2)
                     } else {
                         ForEach(document.emojis) { emoji in
+                            Rectangle()
+                                .fill(.red).opacity(0.1)
+                                .frame(width: 100, height: 100, alignment: Alignment.center)
+                                .scaleEffect(getZoomScaleForEmoji(emoji))
+                                .position(position(for: emoji, in: geometry))
+                                .gesture(zoomGesture())
+                        }
+                        ForEach(document.emojis) { emoji in
                             Text(emoji.text)
                                 .font(.system(size: fontSize(for: emoji)))
                                 .selectionEffect(for: emoji, in: document.selection)
                                 .scaleEffect(getZoomScaleForEmoji(emoji))
                                 .position(position(for: emoji, in: geometry))
-                                .gesture(selectionGesture(on: emoji).simultaneously(with: doubleTapToDelete(on: emoji).simultaneously(with: document.selection.contains(emoji) ? panEmojiGesture(on: emoji) : nil)))
+                                .gesture(selectionGesture(on: emoji).simultaneously(with: doubleTapToDelete(on: emoji).simultaneously(with: document.selection.contains(emoji) ? panEmojiGesture(on: emoji) : nil)
+                                                                                   ))
                         }
                     }
                 }
@@ -128,13 +137,17 @@ struct EmojiArtDocumentView: View {
         MagnificationGesture()
             .updating($gestureZoomScale) { latestGestureScale, gestureZoomScale, _ in
                 gestureZoomScale = latestGestureScale
+                print("updating")
             }
             .onEnded { gestureScaleAtEnd in
+                print("attempting")
                 if document.selection.isEmpty {
                     steadyStateZoomScale *= gestureScaleAtEnd
                 } else {
                     for emoji in document.selection {
+                        print("scaling")
                         document.scaleEmoji(emoji, by: gestureScaleAtEnd)
+                        document.deselectAllEmoji()
                     }
                 }
             }
@@ -188,6 +201,7 @@ struct EmojiArtDocumentView: View {
             .onEnded { finalDragGestureValue in
                 for emoji in document.selection {
                     document.moveEmoji(emoji, by: finalDragGestureValue.distance / zoomScale)
+                    document.deselectAllEmoji()
                 }
             }
     }
